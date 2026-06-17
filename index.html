@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Стереометрические фигуры с чайником</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #222; }
+        canvas { display: block; }
+    </style>
+
+    <!-- Карта импортов для Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://threejs.org/build/three.module.js",
+                "three/addons/": "https://threejs.org/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { TeapotGeometry } from 'three/addons/geometries/TeapotGeometry.js';
+
+        // 1. СЦЕНА
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x333333);
+
+        // 2. КАМЕРА
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 12, 25);
+
+        // 3. РЕНДЕРЕР
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 4. УПРАВЛЕНИЕ МЫШЬЮ
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // 5. СВЕТ
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
+
+        // 6. СЕТКА ПОЛА
+        const grid = new THREE.GridHelper(40, 40, 0x888888, 0x555555);
+        scene.add(grid);
+
+        // 7. ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ
+        function addFigure(geometry, color, x, z, rotX = 0) {
+            const material = new THREE.MeshPhongMaterial({ color: color, side: THREE.DoubleSide });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, 0, z);
+            mesh.rotation.x = rotX;
+            scene.add(mesh);
+        }
+
+        // === ВЕРХНИЙ РЯД (z = -4) ===
+        addFigure(new THREE.BoxGeometry(3, 3, 3), 0xE89A9A, -10, -4);           // Куб (розовый)
+        addFigure(new THREE.ConeGeometry(2, 4, 32), 0x9B30FF, -3, -4);          // Конус (фиолетовый)
+        addFigure(new THREE.SphereGeometry(2, 32, 32), 0x0000CD, 4, -4);        // Сфера (синяя)
+        addFigure(new THREE.ConeGeometry(2.5, 4, 4), 0xBDB76B, 11, -4);         // Пирамида (желтая)
+
+        // === НИЖНИЙ РЯД (z = 4) ===
+        addFigure(new THREE.CylinderGeometry(2, 2, 4, 32), 0x008000, -10, 4);   // Цилиндр (зеленый)
+
+        // ПОЛЫЙ ЦИЛИНДР (бирюзовый) — цилиндр с вырезанной внутренней частью
+        const outerRadius = 2.2;
+        const innerRadius = 1.4;
+        const holeDepth = 4;
+
+        const shape = new THREE.Shape();
+        shape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
+
+        const hole = new THREE.Path();
+        hole.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
+        shape.holes.push(hole);
+
+        const extrudeSettings = {
+            depth: holeDepth,
+            bevelEnabled: false
+        };
+
+        const hollowCylinder = new THREE.Mesh(
+            new THREE.ExtrudeGeometry(shape, extrudeSettings),
+            new THREE.MeshPhongMaterial({ color: 0x40E0D0, side: THREE.DoubleSide })
+        );
+        hollowCylinder.rotation.x = -Math.PI / 2;
+        // Опускаем фигуру на половину высоты, чтобы она стояла на полу как остальные
+        hollowCylinder.position.set(-3, -2, 4);
+        scene.add(hollowCylinder);
+
+        // Обычный бублик (бежевый)
+        addFigure(new THREE.TorusGeometry(2, 0.4, 16, 32), 0xF5DEB3, 4, 4, Math.PI / 2);
+
+        // ЧАЙНИК (зеленый)
+        const teapot = new THREE.Mesh(
+            new TeapotGeometry(1.8, 10),
+            new THREE.MeshPhongMaterial({ color: 0x32CD32 })
+        );
+        teapot.position.set(11, 1.8, 4);
+        scene.add(teapot);
+
+        // 8. АНИМАЦИЯ
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Адаптация под размер окна
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
